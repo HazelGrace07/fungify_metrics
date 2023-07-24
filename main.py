@@ -22,6 +22,10 @@ def fetchData(url):
     response = requests.get(url)
     return response.json()
 
+def flip_json(json_obj):
+    flipped_json = {v: k for k, v in json_obj.items()}
+    return flipped_json
+
 data = fetchData('https://sample-62256-default-rtdb.europe-west1.firebasedatabase.app/metrics.json')
 
 df = pd.DataFrame(data).T
@@ -65,3 +69,40 @@ fig.update_layout(title='Prices Over Time for All Addresses', xaxis=dict(title='
 fig.update_yaxes(type="log")
 
 st.plotly_chart(fig)
+
+# Get leaderboard data
+
+userAddresses = fetchData('https://sample-62256-default-rtdb.europe-west1.firebasedatabase.app/substrate.json')
+
+userAddresses = flip_json(userAddresses)
+
+data = fetchData('https://sample-62256-default-rtdb.europe-west1.firebasedatabase.app/leaderboardTimestamp.json')
+
+print(data)
+
+# Preprocess the data
+data_frames = {datetime.fromtimestamp(int(ts)/1000): pd.DataFrame(values, columns=['Address', 'Value']) for ts, values in data.items()}
+
+# Convert the datetime objects to a list of strings for use with the selectbox
+dates = list(map(lambda dt: dt.strftime('%Y-%m-%d'), data_frames.keys()))
+
+# Get the unique dates
+unique_dates = list(set(dates))
+
+# Use the selectbox widget to let the user select a date
+selected_date_str = st.selectbox('Select a date', unique_dates)
+
+# Convert the selected date string back to a datetime object
+selected_date = datetime.strptime(selected_date_str, '%Y-%m-%d')
+
+for dt, df in data_frames.items():
+    df['Address'] = df['Address'].map(userAddresses)
+
+st.write("Leaderboard for", selected_date_str)
+
+# Iterate over the data_frames to find and display tables for the selected date
+for dt, df in data_frames.items():
+    if dt.date() == selected_date.date():
+        # Print the timestamp as the title of the table
+        st.subheader(dt.strftime('%H:%M:%S'))
+        st.write(df)
