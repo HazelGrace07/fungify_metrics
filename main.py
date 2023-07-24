@@ -104,5 +104,5 @@ st.write("Leaderboard for", selected_date_str)
 for dt, df in data_frames.items():
     if dt.date() == selected_date.date():
         # Print the timestamp as the title of the table
-        st.subheader(dt.strftime('%H:%M:%S'))
+        st.subheader(dt.strftime('%H:%M:%S') + ' UTC')
         st.write(df)
