@@ -5,6 +5,7 @@ import pandas as pd
 import plotly.graph_objects as go
 from datetime import datetime
 import streamlit as st
+import plotly.express as px
 
 st.title('NFT Metrics')
 
@@ -78,7 +79,26 @@ userAddresses = flip_json(userAddresses)
 
 data = fetchData('https://sample-62256-default-rtdb.europe-west1.firebasedatabase.app/leaderboardTimestamp.json')
 
-print(data)
+new_data = []
+for timestamp, values in data.items():
+    print(timestamp, values)
+    for i in range(0, len(values)):
+        username = userAddresses[values[i][0]]  # get the username from the address, if not found use address
+        new_data.append({"timestamp": timestamp, "username": username, "value": values[i][1]})
+
+# Create dataframe
+df = pd.DataFrame(new_data)
+df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')  # assuming timestamp is in milliseconds
+
+# Streamlit selectbox to choose a username
+username = st.selectbox('Select a user', df['username'].unique())
+
+# Filter the dataframe based on selected username
+df_filtered = df[df['username'] == username]
+
+# Create a Plotly chart
+fig = px.line(df_filtered, x='timestamp', y='value', title=f'Historical values for {username}')
+st.plotly_chart(fig)
 
 # Preprocess the data
 data_frames = {datetime.fromtimestamp(int(ts)/1000): pd.DataFrame(values, columns=['Address', 'Value']) for ts, values in data.items()}
